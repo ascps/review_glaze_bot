@@ -24,3 +24,14 @@ def admin_review_keyboard(review_id):
             InlineKeyboardButton("❌ Отклонить", callback_data=f"reject_{review_id}")
         ]
     ])
+
+def giveaway_keyboard():
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("🎉 Участвовать в розыгрыше", callback_data="participate_giveaway")],
+        [InlineKeyboardButton("📢 Наш канал", url="https://t.me/mrnicktestbot")]
+    ])
+
+def after_giveaway_keyboard():
+    return ReplyKeyboardMarkup([
+        [KeyboardButton("/start")]
+    ], resize_keyboard=True, one_time_keyboard=True)

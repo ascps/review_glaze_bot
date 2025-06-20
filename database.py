@@ -23,11 +23,16 @@ def init_db():
         )
     ''')
     
-    # Проверяем существование столбца payment_info и добавляем его, если нужно
-    cursor.execute("PRAGMA table_info(reviews)")
-    columns = [column[1] for column in cursor.fetchall()]
-    if 'payment_info' not in columns:
-        cursor.execute("ALTER TABLE reviews ADD COLUMN payment_info TEXT")
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS giveaway_participants (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER UNIQUE,
+            username TEXT,
+            name TEXT,
+            subscribed BOOLEAN DEFAULT 0,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
     
     conn.commit()
     conn.close()
@@ -50,6 +55,45 @@ def add_review(data):
     conn.commit()
     conn.close()
     return review_id
+
+def add_giveaway_participant(user_id, username, name):
+    conn = sqlite3.connect(Config.DB_NAME)
+    cursor = conn.cursor()
+    
+    try:
+        # Проверяем существующую запись
+        cursor.execute('SELECT 1 FROM giveaway_participants WHERE user_id = ?', (user_id,))
+        exists = cursor.fetchone()
+        
+        if exists:
+            logger.info(f"Участник {user_id} уже существует")
+            return False
+            
+        cursor.execute('''
+            INSERT INTO giveaway_participants 
+            (user_id, username, name, subscribed) 
+            VALUES (?, ?, ?, 1)
+        ''', (user_id, username, name))
+        
+        conn.commit()
+        logger.info(f"Участник {user_id} успешно добавлен")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Ошибка добавления участника: {e}")
+        return False
+    finally:
+        conn.close()
+
+def get_giveaway_participants():
+    conn = sqlite3.connect(Config.DB_NAME)
+    cursor = conn.cursor()
+    
+    cursor.execute('SELECT user_id, username, name FROM giveaway_participants WHERE subscribed = 1')
+    participants = cursor.fetchall()
+    
+    conn.close()
+    return [{'user_id': p[0], 'username': p[1], 'name': p[2]} for p in participants]
 
 def get_review_by_id(review_id):
     conn = sqlite3.connect(Config.DB_NAME)
