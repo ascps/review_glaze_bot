@@ -8,20 +8,11 @@ import logging
 import os
 from datetime import datetime
 
-# Настройка логирования
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.DEBUG,
-    handlers=[
-        logging.FileHandler("bot_handlers.log"),
-        logging.StreamHandler()
-    ]
-)
 logger = logging.getLogger(__name__)
 
 # Константы канала
-CHANNEL_ID = -1002687212900  # Замените на реальный ID канала
-CHANNEL_LINK = "https://t.me/mrnicktestbot"  # Замените на реальную ссылку
+CHANNEL_ID = -1002687212900
+CHANNEL_LINK = "https://t.me/mrnicktestbot"
 
 # Состояния диалога
 (START, REVIEW, SCREENSHOT, DATE, NAME, ARTICLE, PAYMENT_INFO) = range(7)
@@ -40,7 +31,7 @@ async def check_subscription(user_id: int, context: ContextTypes.DEFAULT_TYPE) -
         )
         return member.status in ['member', 'administrator', 'creator']
     except Exception as e:
-        logger.error(f"Ошибка проверки подписки: {e}")
+        logger.error(f"Ошибка проверки подписки: {str(e)}")
         return False
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -52,7 +43,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return REVIEW
     except Exception as e:
-        logger.error(f"Ошибка в start: {e}")
+        logger.error(f"Ошибка в start: {str(e)}")
         await update.message.reply_text(
             "Произошла ошибка. Начните заново с /start",
             reply_markup=restart_keyboard()
@@ -74,7 +65,7 @@ async def handle_review(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return REVIEW
     except Exception as e:
-        logger.error(f"Ошибка в handle_review: {e}")
+        logger.error(f"Ошибка в handle_review: {str(e)}")
         await update.message.reply_text(
             "Произошла ошибка. Попробуйте ещё раз",
             reply_markup=restart_keyboard()
@@ -96,7 +87,7 @@ async def handle_screenshot(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return DATE
     except Exception as e:
-        logger.error(f"Ошибка обработки фото: {e}")
+        logger.error(f"Ошибка обработки фото: {str(e)}")
         await update.message.reply_text(
             Messages.SCREENSHOT_ERROR,
             parse_mode='MarkdownV2',
@@ -113,7 +104,7 @@ async def handle_date(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return NAME
     except Exception as e:
-        logger.error(f"Ошибка в handle_date: {e}")
+        logger.error(f"Ошибка в handle_date: {str(e)}")
         await update.message.reply_text(
             "Произошла ошибка. Попробуйте ещё раз",
             reply_markup=restart_keyboard()
@@ -129,7 +120,7 @@ async def handle_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return ARTICLE
     except Exception as e:
-        logger.error(f"Ошибка в handle_name: {e}")
+        logger.error(f"Ошибка в handle_name: {str(e)}")
         await update.message.reply_text(
             "Произошла ошибка. Попробуйте ещё раз",
             reply_markup=restart_keyboard()
@@ -145,7 +136,7 @@ async def handle_article(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return PAYMENT_INFO
     except Exception as e:
-        logger.error(f"Ошибка в handle_article: {e}")
+        logger.error(f"Ошибка в handle_article: {str(e)}")
         await update.message.reply_text(
             "Произошла ошибка. Попробуйте ещё раз",
             reply_markup=restart_keyboard()
@@ -186,7 +177,7 @@ async def handle_payment_info(update: Update, context: ContextTypes.DEFAULT_TYPE
         
         return ConversationHandler.END
     except Exception as e:
-        logger.error(f"Ошибка в handle_payment_info: {e}")
+        logger.error(f"Ошибка в handle_payment_info: {str(e)}")
         await update.message.reply_text(
             "Произошла ошибка. Нажмите /start",
             reply_markup=restart_keyboard()
@@ -213,26 +204,23 @@ async def send_to_admin(context, review_id, username):
             reply_markup=admin_review_keyboard(review_id)
         )
     except Exception as e:
-        logger.error(f"Ошибка отправки админу: {e}")
+        logger.error(f"Ошибка отправки админу: {str(e)}")
 
 async def approve_review(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     try:
-        await query.answer("Обрабатываю запрос...")
+        await query.answer("Обработка...")
         review_id = int(query.data.split('_')[1])
         
-        logger.info(f"Одобрение отзыва ID: {review_id}")
         update_review_status(review_id, 'approved')
         review = get_review_by_id(review_id)
         
-        # Отправляем уведомление пользователю
         await context.bot.send_message(
             chat_id=review['user_id'],
             text=Messages.REVIEW_APPROVED,
             parse_mode='MarkdownV2'
         )
         
-        # Обновляем сообщение админу
         await query.edit_message_caption(
             caption=f"✅ ОДОБРЕНО\n{query.message.caption}",
             parse_mode='MarkdownV2',
@@ -240,27 +228,24 @@ async def approve_review(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         
     except Exception as e:
-        logger.error(f"Ошибка approve_review: {e}")
+        logger.error(f"Ошибка approve_review: {str(e)}")
         await query.answer("⚠️ Ошибка! Попробуйте позже", show_alert=True)
 
 async def reject_review(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     try:
-        await query.answer("Обрабатываю запрос...")
+        await query.answer("Обработка...")
         review_id = int(query.data.split('_')[1])
         
-        logger.info(f"Отклонение отзыва ID: {review_id}")
         update_review_status(review_id, 'rejected')
         review = get_review_by_id(review_id)
         
-        # Отправляем уведомление пользователю
         await context.bot.send_message(
             chat_id=review['user_id'],
             text=Messages.REVIEW_REJECTED,
             parse_mode='MarkdownV2'
         )
         
-        # Обновляем сообщение админу
         await query.edit_message_caption(
             caption=f"❌ ОТКЛОНЕНО\n{query.message.caption}",
             parse_mode='MarkdownV2',
@@ -268,20 +253,17 @@ async def reject_review(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         
     except Exception as e:
-        logger.error(f"Ошибка reject_review: {e}")
+        logger.error(f"Ошибка reject_review: {str(e)}")
         await query.answer("⚠️ Ошибка! Попробуйте позже", show_alert=True)
 
 async def handle_giveaway_participation(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     try:
-        await query.answer("Проверяем данные...")
+        await query.answer("Проверка...")
         user_id = query.from_user.id
         username = query.from_user.username or query.from_user.full_name
         name = context.user_data.get('reviewer_name', username)
         
-        logger.info(f"Участие в розыгрыше: {user_id}")
-        
-        # Проверка подписки
         is_subscribed = await check_subscription(user_id, context)
         if not is_subscribed:
             await query.edit_message_text(
@@ -291,7 +273,6 @@ async def handle_giveaway_participation(update: Update, context: ContextTypes.DE
             )
             return
 
-        # Добавление участника
         success = add_giveaway_participant(user_id, username, name)
         if success:
             await query.edit_message_text(
@@ -312,7 +293,7 @@ async def handle_giveaway_participation(update: Update, context: ContextTypes.DE
             )
             
     except Exception as e:
-        logger.error(f"Ошибка handle_giveaway_participation: {e}")
+        logger.error(f"Ошибка handle_giveaway_participation: {str(e)}")
         await query.answer("⚠️ Ошибка! Попробуйте позже", show_alert=True)
 
 async def handle_check_subscription(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -332,11 +313,13 @@ async def handle_check_subscription(update: Update, context: ContextTypes.DEFAUL
             reply_markup=giveaway_keyboard()
         )
     except Exception as e:
-        logger.error(f"Ошибка проверки подписки: {e}")
+        logger.error(f"Ошибка handle_check_subscription: {str(e)}")
         await query.answer("⚠️ Ошибка проверки", show_alert=True)
 
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.error(f"Ошибка: {context.error}", exc_info=True)
+    error = str(context.error)
+    logger.error(f"❌ Ошибка: {error}")
+    
     if update and update.message:
         await update.message.reply_text(
             "Произошла ошибка. Нажмите /start",
